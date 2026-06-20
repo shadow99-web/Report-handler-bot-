@@ -12,16 +12,18 @@ import requests
 # ============================================================
 # 🔐 TOKENS & CONFIG
 # ============================================================
-BOT_TOKEN = os.getenv("REPORT_BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
+BOT_TOKEN = ("MTQyMjE4NTYzODc1Njc0OTM5NA.GqVWbt.xwzsuXGBd5nmFT8TLlBRSIBTo-uGVujHkwP5Pw")
 PREFIX = "_"
 
+# Cooldown tracking
 command_cooldowns = {}
-COOLDOWN_SECONDS = 5
-DEVELOPER_IDS = [1378954077462986772, 876746134352183336, 1483484788181569758]
+COOLDOWN_SECONDS = 5  # seconds
+DEVELOPER_IDS = [1378954077462986772, 876746134352183336, 1483484788181569758]  # your main dev ID, same as ADMIN_IDS
 
-HF_TOKEN = os.getenv("HF_TOKEN", "YOUR_HF_TOKEN_HERE")
+HF_TOKEN = ("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")
 HF_DATASET_REPO = "DiscordBOTNHIHUN/P2AURA-FARMER"
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "YOUR_GITHUB_TOKEN_HERE")
+
+GITHUB_TOKEN = ("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")
 SPAWN_RATES_REPO = "shadow99-web/Report-handler-bot-"
 SPAWN_RATES_FILE = "pokemon_chances.txt"
 
