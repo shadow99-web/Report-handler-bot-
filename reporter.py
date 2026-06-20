@@ -12,7 +12,7 @@ import requests
 # ============================================================
 # 🔐 TOKENS & CONFIG
 # ============================================================
-BOT_TOKEN = ("MTQyMjE4NTYzODc1Njc0OTM5NA.GqVWbt.xwzsuXGBd5nmFT8TLlBRSIBTo-uGVujHkwP5Pw")
+BOT_TOKEN = ("YOUR_BOT_TOKEN")
 PREFIX = "_"
 
 # Cooldown tracking
