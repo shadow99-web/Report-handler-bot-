@@ -31,15 +31,15 @@ USER_REPORTS_FILE = "user_reports.json"
 # ============================================================
 # 🎨 CUSTOM EMOJIS
 # ============================================================
-EMOJI_REPORT = "‼️"
-EMOJI_SUCCESS = "💯"
-EMOJI_WARNING = "🚧"
-EMOJI_MUTE = "🔇"
-EMOJI_PUNISH = "👊"
-EMOJI_TRADE = "💱"
-EMOJI_CHECK = "✅"
-EMOJI_WARN = "⚠️"
-EMOJI_LOCK = "🔒"
+EMOJI_REPORT = "<:8227_report:1517986474702798908>"
+EMOJI_SUCCESS = "<:157005reward:1517986224827138119>"
+EMOJI_WARNING = "<:192440warningicon:1517985414177361980>"
+EMOJI_MUTE = "<:959336muted:1517984981434106078>"
+EMOJI_PUNISH = "<:IMG_20260621_014933:1517987322925420705>"
+EMOJI_TRADE = "<:IMG_20260621_014825:1517987092255346788>"
+EMOJI_CHECK = "<a:736775redcheck:1517984986425458788>"
+EMOJI_WARN = "<:3219mod2:1517984176060628992>"
+EMOJI_LOCK = "<:3409locked:1517985850363875479>"
 
 # ============================================================
 # 📂 HUGGING FACE HELPERS
