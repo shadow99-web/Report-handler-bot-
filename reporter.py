@@ -12,18 +12,15 @@ import requests
 # ============================================================
 # 🔐 TOKENS & CONFIG
 # ============================================================
-BOT_TOKEN = ("YOUR_BOT_TOKEN")
+BOT_TOKEN = ("REPORT_BOT_TOKEN")
 PREFIX = "_"
 
-# Cooldown tracking
 command_cooldowns = {}
-COOLDOWN_SECONDS = 5  # seconds
-DEVELOPER_IDS = [1378954077462986772, 876746134352183336, 1483484788181569758]  # your main dev ID, same as ADMIN_IDS
-
-HF_TOKEN = ("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")
-HF_DATASET_REPO = "DiscordBOTNHIHUN/P2AURA-FARMER"
-
-GITHUB_TOKEN = ("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")
+COOLDOWN_SECONDS = 5
+DEVELOPER_IDS = [1378954077462986772, 876746134352183336, 1483484788181569758]
+HF_TOKEN = ("YOUR_HF_TOKEN_HERE")
+HF_DATASET_REPO = "DiscordBOTNHIHUN/P2AURA-FARMER
+GITHUB_TOKEN = ("OUR_GITHUB_TOKEN_HERE")
 SPAWN_RATES_REPO = "shadow99-web/Report-handler-bot-"
 SPAWN_RATES_FILE = "pokemon_chances.txt"
 
@@ -44,7 +41,7 @@ EMOJI_WARN = "<:3219mod2:1517984176060628992>"
 EMOJI_LOCK = "<:3409locked:1517985850363875479>"
 
 # ============================================================
-# 📂 HUGGING FACE HELPERS
+# 📂 HF HELPERS
 # ============================================================
 hf_api = HfApi()
 
@@ -66,7 +63,7 @@ def save_hf_file(filename, data):
         print(f"❌ HF upload failed for {filename}: {e}")
 
 # ============================================================
-# 📦 FETCH SPAWN RATES FROM GITHUB
+# 📦 FETCH SPAWN RATES
 # ============================================================
 SPAWN_RATES = {}
 
@@ -185,7 +182,7 @@ async def apply_punishment(stealer, pokemon_name, config):
     return f"{EMOJI_WARN} Unknown punishment type."
 
 # ============================================================
-# 🤖 DISCORD BOT
+# 🤖 BOT
 # ============================================================
 intents = discord.Intents.default()
 intents.message_content = True
@@ -194,7 +191,7 @@ bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 active_reports = {}
 
 # ============================================================
-# ⚙️ PER‑SERVER CONFIG
+# ⚙️ SERVER CONFIG
 # ============================================================
 server_configs = load_hf_file(SERVER_CONFIG_FILE, {})
 
@@ -208,7 +205,9 @@ def get_server_config(guild_id):
             "punishment_type": "timeout",
             "punishment_value": "1h",
             "punishment_role_id": 0,
-            "panel_sent": False
+            "panel_sent": False,
+            "panel_channel_id": None,
+            "panel_message_id": None
         }
         save_hf_file(SERVER_CONFIG_FILE, server_configs)
     return server_configs[guild_id_str]
@@ -219,9 +218,9 @@ def save_server_config(guild_id, config):
     save_hf_file(SERVER_CONFIG_FILE, server_configs)
 
 # ============================================================
-# 📊 USER REPORTS (FIXED: Always a dict)
+# 📊 USER REPORTS
 # ============================================================
-user_reports = load_hf_file(USER_REPORTS_FILE, {})  # default {} ensures it's a dict
+user_reports = load_hf_file(USER_REPORTS_FILE, {})
 
 def get_user_stats(user_id):
     user_id_str = str(user_id)
@@ -257,7 +256,7 @@ def update_user_stats(user_id, username, pokemon, success=True):
     save_hf_file(USER_REPORTS_FILE, user_reports)
 
 # ============================================================
-# 🧠 EXTRACT STEALER FROM LINK
+# 🧠 EXTRACT STEALER
 # ============================================================
 async def extract_stealer_from_link(guild, link_or_id):
     match = re.search(r'discord\.com/channels/\d+/(\d+)/(\d+)', link_or_id)
@@ -304,13 +303,12 @@ async def extract_stealer_from_link(guild, link_or_id):
         return None
 
 # ============================================================
-# 📨 CREATE REPORT (FIXED: Proper interaction handling)
+# 📨 CREATE REPORT
 # ============================================================
 async def create_report(source, reporter, stealer, pokemon_name, message_link=None):
     if isinstance(source, discord.Interaction):
         guild = source.guild
         channel = source.channel
-        # Defer immediately to avoid timeout
         await source.response.defer(ephemeral=True)
     else:
         guild = source.guild
@@ -325,8 +323,6 @@ async def create_report(source, reporter, stealer, pokemon_name, message_link=No
         return
 
     config = get_server_config(guild.id)
-
-    # Create thread
     thread = await channel.create_thread(
         name=f"report-{stealer.name}-{pokemon_name}",
         type=discord.ChannelType.public_thread
@@ -385,14 +381,13 @@ async def create_report(source, reporter, stealer, pokemon_name, message_link=No
     await thread.send(f"{handler_ping} {stealer.mention} {reporter.mention}")
     await thread.send(embed=embed, view=ReportActions(thread.id))
 
-    # Send confirmation via followup (since we deferred)
     if isinstance(source, discord.Interaction):
         await source.followup.send(f"{EMOJI_CHECK} Report created in {thread.mention}", ephemeral=True)
     else:
         await source.send(f"{EMOJI_CHECK} Report created in {thread.mention}")
 
 # ============================================================
-# 🔘 REPORT ACTIONS VIEW (FIXED: Proper interaction responses)
+# 🔘 REPORT ACTIONS VIEW
 # ============================================================
 class ReportActions(discord.ui.View):
     def __init__(self, thread_id):
@@ -401,9 +396,7 @@ class ReportActions(discord.ui.View):
 
     @discord.ui.button(label="Paid", style=discord.ButtonStyle.success, emoji=EMOJI_SUCCESS)
     async def paid_button(self, interaction, button):
-        # Defer immediately to prevent timeout
         await interaction.response.defer(ephemeral=True)
-
         report = active_reports.get(self.thread_id)
         if not report:
             await interaction.followup.send(f"{EMOJI_WARN} Report not found.", ephemeral=True)
@@ -416,23 +409,15 @@ class ReportActions(discord.ui.View):
         report["status"] = "resolved"
         update_user_stats(report["stealer"].id, report["stealer"].name, report["pokemon"], success=True)
 
-        # Send modal as followup (since we deferred)
-        modal = PaymentConfirmationModal(report["pokemon"], report["stealer"].name, self.thread_id)
-        # Note: You cannot send a modal as a followup; you must respond with the modal in the initial response.
-        # So we need to handle this differently – we'll send a message and then a button to confirm, or we can re‑design.
-        # However, to keep it simple, we'll just close the report with a confirmation message.
-        await interaction.followup.send("✅ Payment confirmed! Report closed.", ephemeral=True)
-        # Close thread
         thread = interaction.channel
         await thread.send(f"{EMOJI_CHECK} {interaction.user.mention} confirmed payment. Closing report.")
         await thread.edit(archived=True, locked=True)
         active_reports.pop(self.thread_id, None)
+        await interaction.followup.send("✅ Report closed. Payment confirmed.", ephemeral=True)
 
     @discord.ui.button(label="Not Paid", style=discord.ButtonStyle.danger, emoji=EMOJI_WARNING)
     async def not_paid_button(self, interaction, button):
-        # Defer
         await interaction.response.defer(ephemeral=True)
-
         report = active_reports.get(self.thread_id)
         if not report:
             await interaction.followup.send(f"{EMOJI_WARN} Report not found.", ephemeral=True)
@@ -473,14 +458,12 @@ class ReportActions(discord.ui.View):
                 await log_channel.send(embed=embed)
             return
 
-        # No trade found – apply punishment
         await interaction.followup.send(f"{EMOJI_PUNISH} Applying punishment...", ephemeral=True)
         config = get_server_config(interaction.guild.id)
         result = await apply_punishment(report["stealer"], report["pokemon"], config)
         await thread.send(result)
         update_user_stats(report["stealer"].id, report["stealer"].name, report["pokemon"], success=False)
         report["status"] = "resolved"
-        # Close report
         await self.close_report(interaction, success=False)
 
     async def close_report(self, interaction, success=False):
@@ -506,75 +489,56 @@ class ReportActions(discord.ui.View):
         await interaction.followup.send(f"{EMOJI_LOCK} Report archived.", ephemeral=True)
 
 # ============================================================
-# 💬 PAYMENT CONFIRMATION MODAL (FIXED: Properly uses modal as response)
+# 🟢 REPORT PANEL VIEW (Dropdown)
 # ============================================================
-class PaymentConfirmationModal(discord.ui.Modal, title="Payment Confirmation"):
-    amount = discord.ui.TextInput(
-        label="Amount Received",
-        placeholder="e.g., 40000 PC or 1 Redeem (optional)",
-        required=False
-    )
-    feedback = discord.ui.TextInput(
-        label="Feedback about Stealer",
-        placeholder="Any comments? (optional)",
-        style=discord.TextStyle.paragraph,
-        required=False
-    )
-
-    def __init__(self, pokemon_name, stealer_name, thread_id):
-        super().__init__()
-        self.pokemon_name = pokemon_name
-        self.stealer_name = stealer_name
-        self.thread_id = thread_id
-
-    async def on_submit(self, interaction: discord.Interaction):
-        # Defer to avoid timeout
-        await interaction.response.defer(ephemeral=True)
-
-        amount = self.amount.value or "Not specified"
-        feedback = self.feedback.value or "No feedback"
-
-        report = active_reports.pop(self.thread_id, None)
-        if report:
-            embed = discord.Embed(
-                title="📋 Payment Confirmation Log",
-                description=f"**Reporter:** {interaction.user.mention}\n**Pokémon:** {self.pokemon_name}\n**Stealer:** {self.stealer_name}",
-                color=0x2C2C2C
-            )
-            embed.add_field(name="Amount Received", value=amount, inline=False)
-            embed.add_field(name="Feedback about Stealer", value=feedback, inline=False)
-            if report.get("proof_link"):
-                embed.add_field(name="📎 Trade Proof", value=f"[Click here]({report['proof_link']})", inline=False)
-            if report.get("message_link"):
-                embed.add_field(name="📎 Evidence", value=f"[Click here]({report['message_link']})", inline=False)
-            embed.set_footer(text=f"Report resolved at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-
-            # Send to thread
-            thread = interaction.channel
-            await thread.send(embed=embed)
-
-            # Log to log channel
-            config = get_server_config(interaction.guild.id)
-            log_channel = interaction.guild.get_channel(config["log_channel_id"])
-            if log_channel:
-                await log_channel.send(embed=embed)
-
-            # Close thread
-            await thread.send(f"{EMOJI_LOCK} Report resolved and archived.")
-            await thread.edit(archived=True, locked=True)
-
-            await interaction.followup.send("✅ Report resolved!", ephemeral=True)
-        else:
-            await interaction.followup.send("Report already resolved.", ephemeral=True)
-# ============================================================
-# 🔘 REPORT BUTTON & MODAL (FIXED)
-# ============================================================
-class ReportButton(discord.ui.Button):
+class ReportSelect(discord.ui.Select):
     def __init__(self):
-        super().__init__(label="Report", style=discord.ButtonStyle.danger, emoji=EMOJI_REPORT)
-    async def callback(self, interaction):
-        await interaction.response.send_modal(ReportModal())
+        options = [
+            discord.SelectOption(
+                label="Report Pokémon Theft",
+                description="Report a stolen Pokémon",
+                emoji="‼️",
+                value="report"
+            ),
+            # Add more options here if needed
+        ]
+        super().__init__(
+            placeholder="Select a reason...",
+            min_values=1,
+            max_values=1,
+            options=options
+        )
 
+    async def callback(self, interaction: discord.Interaction):
+        if self.values[0] == "report":
+            await interaction.response.send_modal(ReportModal())
+
+
+class ReportPanelView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(ReportSelect())
+
+
+# ============================================================
+# 📨 SEND PANEL
+# ============================================================
+async def send_panel(channel, guild_id):
+    config = get_server_config(guild_id)
+    embed = discord.Embed(
+        title=f"{EMOJI_REPORT} Report Panel",
+        description="Select a reason from the dropdown below to start a report.",
+        color=0x2C2C2C
+    )
+    embed.set_footer(text="Report Handler • Persistent panel")
+    view = ReportPanelView()
+    msg = await channel.send(embed=embed, view=view)
+    config["panel_message_id"] = msg.id
+    save_server_config(guild_id, config)
+
+# ============================================================
+# 📋 MODALS
+# ============================================================
 class ReportModal(discord.ui.Modal, title="Report Theft"):
     stealer = discord.ui.TextInput(
         label="Stealer (Optional)",
@@ -598,7 +562,6 @@ class ReportModal(discord.ui.Modal, title="Report Theft"):
         msg_ref = self.message_link.value.strip()
 
         stealer = None
-
         if stealer_input:
             match = re.search(r'<@!?(\d+)>', stealer_input)
             if match:
@@ -628,6 +591,55 @@ class ReportModal(discord.ui.Modal, title="Report Theft"):
 
         await create_report(interaction, interaction.user, stealer, pokemon_name, msg_ref)
 
+class PaymentConfirmationModal(discord.ui.Modal, title="Payment Confirmation"):
+    amount = discord.ui.TextInput(
+        label="Amount Received",
+        placeholder="e.g., 40000 PC or 1 Redeem (optional)",
+        required=False
+    )
+    feedback = discord.ui.TextInput(
+        label="Feedback about Stealer",
+        placeholder="Any comments? (optional)",
+        style=discord.TextStyle.paragraph,
+        required=False
+    )
+
+    def __init__(self, pokemon_name, stealer_name, thread_id):
+        super().__init__()
+        self.pokemon_name = pokemon_name
+        self.stealer_name = stealer_name
+        self.thread_id = thread_id
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        amount = self.amount.value or "Not specified"
+        feedback = self.feedback.value or "No feedback"
+        report = active_reports.pop(self.thread_id, None)
+        if report:
+            embed = discord.Embed(
+                title="📋 Payment Confirmation Log",
+                description=f"**Reporter:** {interaction.user.mention}\n**Pokémon:** {self.pokemon_name}\n**Stealer:** {self.stealer_name}",
+                color=0x2C2C2C
+            )
+            embed.add_field(name="Amount Received", value=amount, inline=False)
+            embed.add_field(name="Feedback about Stealer", value=feedback, inline=False)
+            if report.get("proof_link"):
+                embed.add_field(name="📎 Trade Proof", value=f"[Click here]({report['proof_link']})", inline=False)
+            if report.get("message_link"):
+                embed.add_field(name="📎 Evidence", value=f"[Click here]({report['message_link']})", inline=False)
+            embed.set_footer(text=f"Report resolved at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            thread = interaction.channel
+            await thread.send(embed=embed)
+            config = get_server_config(interaction.guild.id)
+            log_channel = interaction.guild.get_channel(config["log_channel_id"])
+            if log_channel:
+                await log_channel.send(embed=embed)
+            await thread.send(f"{EMOJI_LOCK} Report resolved and archived.")
+            await thread.edit(archived=True, locked=True)
+            await interaction.followup.send("✅ Report resolved!", ephemeral=True)
+        else:
+            await interaction.followup.send("Report already resolved.", ephemeral=True)
+
 # ============================================================
 # 📋 COMMANDS
 # ============================================================
@@ -638,15 +650,7 @@ async def report_panel(ctx):
     config = get_server_config(ctx.guild.id)
     if config.get("panel_sent", False):
         return await ctx.send(f"{EMOJI_WARN} A report panel already exists in this server.")
-    embed = discord.Embed(
-        title=f"{EMOJI_REPORT} Report Panel",
-        description="Click the **Report** button below to report a Pokémon theft.",
-        color=0x2C2C2C
-    )
-    embed.set_footer(text="Report Handler • Admin-only panel")
-    view = discord.ui.View()
-    view.add_item(ReportButton())
-    await ctx.send(embed=embed, view=view)
+    await send_panel(ctx.channel, ctx.guild.id)
     config["panel_sent"] = True
     save_server_config(ctx.guild.id, config)
 
@@ -655,18 +659,20 @@ async def force_report_panel(ctx):
     if ctx.author.id not in DEVELOPER_IDS and not ctx.author.guild_permissions.administrator:
         return await ctx.send(f"{EMOJI_WARN} Admin or Developer permission required.")
     config = get_server_config(ctx.guild.id)
-    embed = discord.Embed(
-        title=f"{EMOJI_REPORT} Report Panel",
-        description="Click the **Report** button below to report a Pokémon theft.",
-        color=0x2C2C2C
-    )
-    embed.set_footer(text="Report Handler • Admin-only panel")
-    view = discord.ui.View()
-    view.add_item(ReportButton())
-    await ctx.send(embed=embed, view=view)
+    await send_panel(ctx.channel, ctx.guild.id)
     config["panel_sent"] = False
     save_server_config(ctx.guild.id, config)
     await ctx.send(f"{EMOJI_CHECK} New report panel sent!")
+
+@bot.command(name="setpanelchannel")
+async def set_panel_channel(ctx, channel: discord.TextChannel):
+    if not ctx.author.guild_permissions.administrator:
+        return await ctx.send(f"{EMOJI_WARN} Admin permission required.")
+    config = get_server_config(ctx.guild.id)
+    config["panel_channel_id"] = channel.id
+    save_server_config(ctx.guild.id, config)
+    await ctx.send(f"{EMOJI_CHECK} Report panel will be sent to {channel.mention} on startup.")
+    await send_panel(channel, ctx.guild.id)
 
 @bot.command(name="paid")
 async def confirm_paid(ctx):
@@ -834,6 +840,25 @@ async def user_reports(ctx, user: discord.Member):
     await ctx.send(embed=embed)
 
 # ============================================================
+# 🔄 CONFIRM PAYMENT BUTTON
+# ============================================================
+class ConfirmPaymentButton(discord.ui.Button):
+    def __init__(self, thread_id):
+        super().__init__(label="Confirm Payment", style=discord.ButtonStyle.success, emoji=EMOJI_CHECK)
+        self.thread_id = thread_id
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        report = active_reports.get(self.thread_id)
+        if not report:
+            await interaction.followup.send(f"{EMOJI_WARN} Report not found.", ephemeral=True)
+            return
+        if interaction.user.id != report["reporter"].id:
+            await interaction.followup.send(f"{EMOJI_WARN} Only reporter can confirm.", ephemeral=True)
+            return
+        await interaction.followup.send("✅ Please use `_paid` to confirm payment.", ephemeral=True)
+
+# ============================================================
 # 🔄 TRADE MONITORING
 # ============================================================
 @bot.event
@@ -922,29 +947,18 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # ============================================================
-# 🔘 CONFIRM PAYMENT BUTTON
+# 🚀 ON_READY
 # ============================================================
-class ConfirmPaymentButton(discord.ui.Button):
-    def __init__(self, thread_id):
-        super().__init__(label="Confirm Payment", style=discord.ButtonStyle.success, emoji=EMOJI_CHECK)
-        self.thread_id = thread_id
-
-    async def callback(self, interaction: discord.Interaction):
-        # Defer
-        await interaction.response.defer(ephemeral=True)
-        report = active_reports.get(self.thread_id)
-        if not report:
-            await interaction.followup.send(f"{EMOJI_WARN} Report not found.", ephemeral=True)
-            return
-        if interaction.user.id != report["reporter"].id:
-            await interaction.followup.send(f"{EMOJI_WARN} Only reporter can confirm.", ephemeral=True)
-            return
-
-        modal = PaymentConfirmationModal(report["pokemon"], report["stealer"].name, self.thread_id)
-        # But we can't send modal as followup – we need to send as initial response.
-        # Since we already deferred, we need to fix: we'll reply with a message instead.
-        # For simplicity, we'll just ask them to use the `_paid` command.
-        await interaction.followup.send("✅ Please use `_paid` to confirm payment.", ephemeral=True)
+@bot.event
+async def on_ready():
+    print(f"✅ Report Bot online as {bot.user.name}")
+    for guild in bot.guilds:
+        config = get_server_config(guild.id)
+        panel_channel_id = config.get("panel_channel_id")
+        if panel_channel_id:
+            channel = guild.get_channel(panel_channel_id)
+            if channel:
+                await send_panel(channel, guild.id)
 
 # ============================================================
 # 🚀 KEEP-ALIVE
